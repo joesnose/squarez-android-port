@@ -15,7 +15,7 @@ ipcMain.handle('lan-host', async () => {
   server = new WebSocketServer({ host: '0.0.0.0', port: PORT });
   server.on('connection', ws => {
     const peers = [...server.clients].filter(c => c !== ws && c.readyState === 1);
-    if (peers.length > 0) { ws.close(1013, 'Room full'); return; }
+    if (peers.length > 1) { ws.close(1013, 'Room full'); return; }
     for (const peer of peers) peer.send(JSON.stringify({ __lan: 'joined' }));
     ws.on('message', data => {
       for (const client of server.clients) if (client !== ws && client.readyState === 1) client.send(data.toString());
