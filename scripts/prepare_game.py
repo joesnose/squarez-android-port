@@ -94,3 +94,7 @@ if pwa.exists():
     code = "'use strict';\n// Disabled in Android wrapper; local assets are served by WebViewAssetLoader.\n"
     pwa.write_text(code)
 print("Copied game and installed direct touch controls with 8px padding.")
+
+# LAN-only multiplayer shared by Android and Windows.
+import subprocess
+subprocess.run([sys.executable, str(Path(__file__).resolve().parent.parent / 'scripts' / 'apply_lan.py'), str(target)], check=True)
