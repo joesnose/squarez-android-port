@@ -19,7 +19,9 @@
     },
     "files": [
       "main.cjs",
-      "game/**/*"
+      "game/**/*",
+      "preload.cjs",
+      "node_modules/ws/**/*"
     ],
     "win": {
       "target": [
