@@ -17,14 +17,38 @@ marker = "  newLink(role) {"
 assert marker in s
 s = s.replace(marker, """  askLanAddress(done) {
     const panel = document.createElement('div');
-    panel.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000b;z-index:99999';
+    panel.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000c;z-index:99999';
     const form = document.createElement('form');
-    form.style.cssText = 'background:#192a39;padding:24px;color:white;font:18px sans-serif;max-width:90vw';
-    form.innerHTML = '<label>Host PC IP address<br><input name="ip" inputmode="decimal" placeholder="192.168.1.100" required style="font-size:20px;margin:12px 0;padding:8px;max-width:75vw"></label><br><button type="submit">Join LAN game</button> <button type="button" id="cancelLan">Cancel</button>';
+    form.style.cssText = 'background:#192a39;padding:20px;color:white;font:18px sans-serif;max-width:90vw;max-height:90vh;overflow:auto';
+    form.innerHTML = '<strong>Find LAN games</strong><div id="lanResults" style="margin:14px 0">Searching your network...</div><button type="button" id="lanRefresh">Search again</button><hr><label>Manual IP address<br><input name="ip" inputmode="decimal" placeholder="192.168.1.100" style="font-size:18px;margin:8px 0;padding:8px;max-width:75vw"></label><br><button type="submit">Connect by IP</button> <button type="button" id="lanCancel">Cancel</button>';
     panel.appendChild(form); document.body.appendChild(panel);
-    form.querySelector('#cancelLan').onclick = () => panel.remove();
-    form.onsubmit = e => { e.preventDefault(); const ip = form.elements.ip.value.trim(); panel.remove(); done(ip); };
-    form.elements.ip.focus();
+    const results = form.querySelector('#lanResults');
+    const connect = ip => { panel.remove(); delete window.squarezDiscoveryResult; done(ip); };
+    const render = hosts => {
+      if (!panel.isConnected) return;
+      results.textContent = hosts.length ? 'Available hosts:' : 'No games found. Try manual IP or search again.';
+      for (const ip of hosts) {
+        const button = document.createElement('button');
+        button.type = 'button'; button.textContent = 'Join ' + ip;
+        button.style.cssText = 'display:block;padding:10px;margin:6px 0;font-size:18px';
+        button.onclick = () => connect(ip);
+        results.appendChild(button);
+      }
+    };
+    const discover = async () => {
+      results.textContent = 'Searching your network...';
+      try {
+        if (window.squarezLAN && window.squarezLAN.discover) render(await window.squarezLAN.discover());
+        else if (window.SquarezDiscovery) {
+          window.squarezDiscoveryResult = render;
+          window.SquarezDiscovery.discover();
+        } else render([]);
+      } catch (err) { results.textContent = 'Discovery unavailable: ' + err.message; }
+    };
+    form.querySelector('#lanRefresh').onclick = discover;
+    form.querySelector('#lanCancel').onclick = () => { panel.remove(); delete window.squarezDiscoveryResult; };
+    form.onsubmit = e => { e.preventDefault(); const ip = form.elements.ip.value.trim(); if (ip) connect(ip); };
+    discover();
   }
 
 """ + marker)
