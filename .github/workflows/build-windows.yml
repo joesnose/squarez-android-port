@@ -1,0 +1,36 @@
+name: Build Squarez Windows Mouse EXE
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'windows/**'
+      - '.github/workflows/build-windows.yml'
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: itsamenathan/Squarez-PSP-port
+          path: upstream
+      - name: Prepare game
+        run: python windows/prepare_windows.py upstream windows/game
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        working-directory: windows
+        run: npm install --no-audit --no-fund
+      - name: Build portable EXE
+        working-directory: windows
+        run: npm run dist
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Upload EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: squarez-windows-mouse-exe
+          path: windows/dist/*.exe
+          if-no-files-found: error
