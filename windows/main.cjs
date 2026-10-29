@@ -7,17 +7,15 @@ let server = null;
 function localAddress() {
   const candidates = [];
   for (const [name, entries] of Object.entries(os.networkInterfaces())) {
+    if (/virtual|vbox|vmware|hyper-v|vethernet|docker|wsl|loopback|tailscale|zerotier|bluetooth/i.test(name)) continue;
     for (const entry of entries || []) {
-      if (entry.family !== 'IPv4' || entry.internal) continue;
-      const ip = entry.address;
-      const privateIP = /^192\\.168\\./.test(ip) || /^10\\./.test(ip) ||
-        /^172\\.(1[6-9]|2[0-9]|3[01])\\./.test(ip);
-      const virtual = /virtual|vmware|vbox|hyper-v|vethernet|docker|wsl|tailscale|zerotier|vpn|loopback|bluetooth/i.test(name);
-      candidates.push({ ip, score: (privateIP ? 10 : 0) + (/wi-?fi|wireless|wlan|ethernet/i.test(name) ? 5 : 0) - (virtual ? 100 : 0) });
+      if (entry.family !== 'IPv4' || entry.internal || entry.address.startsWith('169.254.')) continue;
+      candidates.push({ name, address: entry.address });
     }
   }
-  candidates.sort((a, b) => b.score - a.score);
-  return candidates.length ? candidates[0].ip : '127.0.0.1';
+  const preferred = candidates.find(c => c.address.startsWith('192.168.1.'));
+  const physical = candidates.find(c => /wi-?fi|wireless|ethernet/i.test(c.name));
+  return (preferred || physical || candidates[0] || { address: '127.0.0.1' }).address;
 }
 
 ipcMain.handle('lan-host', async () => {
