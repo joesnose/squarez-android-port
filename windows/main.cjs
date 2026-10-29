@@ -19,17 +19,18 @@ function localAddress() {
 }
 
 ipcMain.handle('lan-host', async () => {
-  if (server && server.listening) return localAddress();
-  if (server) { server.close(); server = null; }
+  if (server && server.address()) return localAddress();
+  if (server) { try { server.close(); } catch {} server = null; }
   const candidate = new WebSocketServer({ host: '0.0.0.0', port: PORT });
   try {
     await new Promise((resolve, reject) => {
+      if (candidate.address()) return resolve();
       candidate.once('listening', resolve);
       candidate.once('error', reject);
     });
   } catch (err) {
-    candidate.close();
-    throw new Error('Cannot start LAN host on port ' + PORT + ': ' + err.message);
+    try { candidate.close(); } catch {}
+    throw new Error('LAN server could not listen on port ' + PORT + ': ' + err.message);
   }
   server = candidate;
   server.on('error', err => console.error('LAN server:', err));
