@@ -36,7 +36,11 @@ jobs:
         with:
           gradle-version: '8.10.2'
       - name: Install Android SDK
-        run: |\n          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -path '*/bin/sdkmanager' -type f | head -n 1)\n          if [ -z "$SDKMANAGER" ]; then echo 'sdkmanager not found in preinstalled SDK'; exit 1; fi\n          yes | "$SDKMANAGER" --licenses >/dev/null || true\n          "$SDKMANAGER" 'platforms;android-35' 'build-tools;35.0.0'
+        run: |
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -path '*/bin/sdkmanager' -type f | head -n 1)
+          if [ -z "$SDKMANAGER" ]; then echo 'sdkmanager not found in preinstalled SDK'; exit 1; fi
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" 'platforms;android-35' 'build-tools;35.0.0'
       - name: Build APK
         run: gradle --no-daemon :app:assembleDebug
       - name: Upload APK
