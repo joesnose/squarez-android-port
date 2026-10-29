@@ -19,8 +19,19 @@ function localAddress() {
 }
 
 ipcMain.handle('lan-host', async () => {
-  if (server) return localAddress();
-  server = new WebSocketServer({ host: '0.0.0.0', port: PORT });
+  if (server && server.address()) return localAddress();
+  if (server) { try { server.close(); } catch {} server = null; }
+  const instance = new WebSocketServer({ host: '0.0.0.0', port: PORT });
+  try {
+    await new Promise((resolve, reject) => {
+      instance.once('listening', resolve);
+      instance.once('error', reject);
+    });
+  } catch (err) {
+    try { instance.close(); } catch {}
+    throw new Error('LAN server failed to start on port ' + PORT + ': ' + err.message);
+  }
+  server = instance;
   server.on('connection', ws => {
     const peers = [...server.clients].filter(c => c !== ws && c.readyState === 1);
     if (peers.length > 1) { ws.close(1013, 'Room full'); return; }
@@ -32,7 +43,14 @@ ipcMain.handle('lan-host', async () => {
   server.on('error', err => console.error('LAN server:', err));
   return localAddress();
 });
-ipcMain.handle('lan-stop', () => { if (server) { for (const c of server.clients) c.close(); server.close(); server = null; } });
+ipcMain.handle('lan-stop', () => {
+  if (server) {
+    const previous = server;
+    server = null;
+    for (const c of previous.clients) c.close();
+    previous.close();
+  }
+});
 app.whenReady().then(() => {
   const win = new BrowserWindow({ width: 1100, height: 720, autoHideMenuBar: true, webPreferences: { nodeIntegration: false, contextIsolation: true, preload: path.join(__dirname, 'preload.cjs') } });
   win.loadFile(path.join(__dirname, 'game', 'index.html'));
