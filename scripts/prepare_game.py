@@ -98,3 +98,44 @@ print("Copied game and installed direct touch controls with 8px padding.")
 # LAN-only multiplayer shared by Android and Windows.
 import subprocess
 subprocess.run([sys.executable, str(Path(__file__).resolve().parent.parent / 'scripts' / 'apply_lan.py'), str(target)], check=True)
+
+# Native touchscreen selection for game menus, including multiplayer.
+index = target / 'index.html'
+html = index.read_text()
+menu_touch = """
+<script>
+(() => {
+  const canvas = document.getElementById('screen');
+  const action = key => ({ pressed: k => k === key, nav: k => k === key });
+  canvas.addEventListener('pointerup', e => {
+    if (e.pointerType === 'mouse') return;
+    const app = window.squarez;
+    if (!app || app.text || app.screen === 'game') return;
+    const r = canvas.getBoundingClientRect();
+    const x = (e.clientX - r.left) * canvas.width / r.width;
+    const y = (e.clientY - r.top) * canvas.height / r.height;
+    if (app.screen === 'menu') {
+      if (app.timedMenu) { app.updateMenu(action('accept')); return; }
+      const n = Math.round((y - 0x41) / 12);
+      if (n >= 0 && n < 20 && Math.abs(y - (0x41 + n * 12)) < 7) {
+        app.menuIndex = n; app.updateMenu(action('accept'));
+      }
+    } else if (app.screen === 'multi') {
+      const rows = [0x24, 0x32, 0x48, 0x56];
+      const n = rows.findIndex(v => Math.abs(y - v) <= 8);
+      if (n >= 0) { app.multiRow = n; app.updateMulti(action(n < 2 ? 'right' : 'accept')); }
+    } else if (app.screen === 'options') {
+      const n = Math.round((y - 0x1a) / 15);
+      if (n >= 0 && n < 20) { app.optionIndex = n; app.updateOptions(action('accept')); }
+    } else if (app.screen === 'lobby') {
+      if (y > 0xd8) app.updateLobby(action('back'));
+    } else if (app.screen === 'custom') {
+      const n = Math.round((y - 0x2c) / 12);
+      if (n >= 0 && n < 17) { app.customIndex = app.customTop + n; app.updateCustom(action('accept')); }
+    }
+  });
+})();
+</script>
+"""
+assert '</body>' in html
+index.write_text(html.replace('</body>', menu_touch + '</body>'))
