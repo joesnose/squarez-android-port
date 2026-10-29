@@ -15,7 +15,8 @@ public class MainActivity extends Activity {
     super.onCreate(state);
     getWindow().getDecorView().setSystemUiVisibility(5894 | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
     web = new WebView(this);
-    web.getSettings().setJavaScriptEnabled(true);\n    web.getSettings().setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+    web.getSettings().setJavaScriptEnabled(true);
+    web.getSettings().setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
     web.getSettings().setDomStorageEnabled(true);
     web.getSettings().setMediaPlaybackRequiresUserGesture(false);
     final WebViewAssetLoader loader = new WebViewAssetLoader.Builder().addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this)).build();
