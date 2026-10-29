@@ -72,7 +72,7 @@ s = s.replace(needle, "    this.touch.app = this.app;\n" + needle)
 # Move the player to the finger target each simulation tick, without analog speed limits.
 # Keep collision checks in the existing game update loop; clamp to playfield boundaries.
 needle = "    this.stat('pixels', Math.abs(this.px - x0) + Math.abs(this.py - y0));"
-assert needle in s, "Upstream game.js movement changed"
+assert needle in (target / "src" / "game.js").read_text(), "Upstream game.js movement changed"
 gamepath = target / "src" / "game.js"
 gamecode = gamepath.read_text()
 assert needle in gamecode
