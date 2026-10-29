@@ -28,5 +28,8 @@
       "artifactName": "Squarez-Mouse-Windows-${version}.exe",
       "icon": "icon.ico"
     }
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
   }
 }
