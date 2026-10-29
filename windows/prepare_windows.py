@@ -175,3 +175,7 @@ pointer_script = """
 </script>
 """
 index.write_text(html.replace('</body>', pointer_script + '</body>'))
+
+# LAN-only multiplayer shared by Android and Windows.
+import subprocess
+subprocess.run([sys.executable, str(Path(__file__).resolve().parent.parent / 'scripts' / 'apply_lan.py'), str(dest)], check=True)
