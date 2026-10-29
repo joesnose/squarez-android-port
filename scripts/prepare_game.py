@@ -69,20 +69,22 @@ s = s.replace(needle, needle)  # attach app immediately after constructor, below
 needle = "    if (this.touch.visible) this.device = 'touch';"
 assert needle in s
 s = s.replace(needle, "    this.touch.app = this.app;\n" + needle)
-needle = "    if (this.capture) this.updateCapture();"
-assert needle in s
-s = s.replace(needle, """    if (t.direct && this.app.screen === 'game' && this.app.game && !this.app.game.paused) {
-      const g = this.app.game;
-      const d = t.direct;
-      const dx = d.targetX - g.px, dy = d.targetY - g.py;
-      // Feed normal analog input so gameplay speed limits and collision logic remain intact.
-      if (Math.abs(dx) > 1) ax = dx < 0 ? 0 : 255;
-      else ax = 0x82;
-      if (Math.abs(dy) > 1) ay = dy < 0 ? 0 : 255;
-      else ay = 0x82;
-      this.device = 'touch';
+# Move the player to the finger target each simulation tick, without analog speed limits.
+# Keep collision checks in the existing game update loop; clamp to playfield boundaries.
+needle = "    this.stat('pixels', Math.abs(this.px - x0) + Math.abs(this.py - y0));"
+assert needle in s, "Upstream game.js movement changed"
+gamepath = target / "src" / "game.js"
+gamecode = gamepath.read_text()
+assert needle in gamecode
+gamecode = gamecode.replace(needle, """    const direct = this.app.input && this.app.input.touch && this.app.input.touch.direct;
+    if (direct && !this.paused) {
+      this.px = Math.max(0, Math.min(FIELD_RIGHT - this.psize, Math.round(direct.targetX)));
+      this.py = Math.max(0, Math.min(FIELD_BOTTOM - this.psize, Math.round(direct.targetY)));
+      if (this.px !== x0 || this.py !== y0) this.moved = true;
     }
 """ + needle)
+gamepath.write_text(gamecode)
+
 path.write_text(s)
 
 # Android's embedded secure-origin WebView doesn't need the PWA service worker.
