@@ -5,11 +5,21 @@ const { WebSocketServer } = require('ws');
 const PORT = 38471;
 let server = null;
 function localAddress() {
-  for (const entries of Object.values(os.networkInterfaces())) {
-    for (const entry of entries || []) if (entry.family === 'IPv4' && !entry.internal) return entry.address;
+  const candidates = [];
+  for (const [name, entries] of Object.entries(os.networkInterfaces())) {
+    for (const entry of entries || []) {
+      if (entry.family !== 'IPv4' || entry.internal) continue;
+      const ip = entry.address;
+      const privateIP = /^192\\.168\\./.test(ip) || /^10\\./.test(ip) ||
+        /^172\\.(1[6-9]|2[0-9]|3[01])\\./.test(ip);
+      const virtual = /virtual|vmware|vbox|hyper-v|vethernet|docker|wsl|tailscale|zerotier|vpn|loopback|bluetooth/i.test(name);
+      candidates.push({ ip, score: (privateIP ? 10 : 0) + (/wi-?fi|wireless|wlan|ethernet/i.test(name) ? 5 : 0) - (virtual ? 100 : 0) });
+    }
   }
-  return '127.0.0.1';
+  candidates.sort((a, b) => b.score - a.score);
+  return candidates.length ? candidates[0].ip : '127.0.0.1';
 }
+
 ipcMain.handle('lan-host', async () => {
   if (server) return localAddress();
   server = new WebSocketServer({ host: '0.0.0.0', port: PORT });
