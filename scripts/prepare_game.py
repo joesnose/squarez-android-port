@@ -108,3 +108,15 @@ net = net.replace("const timeout = setTimeout(() => fail({ message: 'Timed out c
 net = net.replace("      peer.once('open', () => { clearTimeout(timeout); peer.off('error', fail); resolve(); });", "      peer.once('open', () => { this.phase = 'matchmaking connected'; clearTimeout(timeout); peer.off('error', fail); resolve(); });")
 net = net.replace("      const fail = err => { clearTimeout(timeout); reject(err); };", "      const fail = err => { this.phase = 'signaling: ' + (err.type || err.message || 'error'); clearTimeout(timeout); reject(err); };")
 netpath.write_text(net)
+
+# Preserve the underlying PeerJS error category when Android cannot host.
+netpath = target / 'src' / 'net.js'
+net = netpath.read_text()
+old = "if (err.type !== 'unavailable-id') throw new Error(errorText(err));"
+new = """if (err.type !== 'unavailable-id') {
+          const detail = err && (err.type || err.message) || 'unknown';
+          throw new Error('PeerJS ' + detail + ': ' + errorText(err));
+        }"""
+assert old in net, 'PeerJS host error handling changed upstream'
+net = net.replace(old, new, 1)
+netpath.write_text(net)
