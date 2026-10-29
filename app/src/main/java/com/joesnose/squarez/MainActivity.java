@@ -7,6 +7,8 @@ import android.webkit.WebView;
 import android.webkit.JavascriptInterface;
 import java.net.*;
 import java.util.*;
+import android.net.wifi.WifiManager;
+import android.content.Context;
 import android.webkit.WebViewClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -23,6 +25,11 @@ public class MainActivity extends Activity {
       @JavascriptInterface public void discover() {
         new Thread(() -> {
           Set<String> hosts = new LinkedHashSet<>();
+          WifiManager.MulticastLock lock = null;
+          try {
+            WifiManager wifi = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            if (wifi != null) { lock = wifi.createMulticastLock("squarez-lan-discovery"); lock.setReferenceCounted(false); lock.acquire(); }
+          } catch (Exception ignored) {}
           try (DatagramSocket socket = new DatagramSocket()) {
             socket.setBroadcast(true);
             socket.setSoTimeout(450);
@@ -47,6 +54,7 @@ public class MainActivity extends Activity {
               } catch (SocketTimeoutException ignored) { }
             }
           } catch (Exception ignored) { }
+          if (lock != null && lock.isHeld()) lock.release();
           StringBuilder json = new StringBuilder("[");
           for (String host : hosts) { if (json.length() > 1) json.append(','); json.append('"').append(host).append('"'); }
           json.append(']');
