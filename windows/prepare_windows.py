@@ -18,3 +18,25 @@ replacement = """
     }
 """
 game.write_text(code.replace(needle, replacement + needle))
+index = dest / 'index.html'
+html = index.read_text()
+assert '</body>' in html
+script = """
+<script>
+(() => {
+  const canvas = document.getElementById('screen');
+  const update = e => {
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    window.squarezMouseTarget = {
+      x: (e.clientX - rect.left) * canvas.width / rect.width,
+      y: (e.clientY - rect.top) * canvas.height / rect.height
+    };
+  };
+  canvas.addEventListener('mousemove', update);
+  canvas.addEventListener('mouseenter', update);
+  canvas.addEventListener('mouseleave', () => { window.squarezMouseTarget = null; });
+})();
+</script>
+"""
+index.write_text(html.replace('</body>', script + '</body>'))
