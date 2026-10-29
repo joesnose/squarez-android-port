@@ -94,24 +94,3 @@ if pwa.exists():
     code = "'use strict';\n// Disabled in Android wrapper; local assets are served by WebViewAssetLoader.\n"
     pwa.write_text(code)
 print("Copied game and installed direct touch controls with 8px padding.")
-
-# Android WebView WebRTC: use multiple STUN discovery endpoints, allow more
-# time for ICE negotiation, and surface ICE failures instead of generic timeout.
-netpath = target / "src" / "net.js"
-net = netpath.read_text()
-assert "const CONNECT_MS = 20000;" in net
-net = net.replace("const CONNECT_MS = 20000;", "const CONNECT_MS = 45000;")
-assert "const peer = id ? new Peer(id, { debug: 0 }) : new Peer({ debug: 0 });" in net
-net = net.replace("const peer = id ? new Peer(id, { debug: 0 }) : new Peer({ debug: 0 });", """const peerOptions = {
-        debug: 1,
-        config: {
-          iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun.cloudflare.com:3478' }
-          ],
-          iceCandidatePoolSize: 4
-        }
-      };
-      const peer = id ? new Peer(id, peerOptions) : new Peer(peerOptions);""")
-netpath.write_text(net)
