@@ -1,0 +1,31 @@
+{
+  "name": "squarez-windows",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Squarez Windows mouse-controlled port",
+  "main": "main.cjs",
+  "scripts": {
+    "dist": "electron-builder --win portable --x64"
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.joesnose.squarez.windows",
+    "productName": "Squarez Mouse",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.cjs",
+      "game/**/*"
+    ],
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "artifactName": "Squarez-Mouse-Windows-${version}.exe"
+    }
+  }
+}
