@@ -40,3 +40,28 @@ script = """
 </script>
 """
 index.write_text(html.replace('</body>', script + '</body>'))
+
+main = dest / 'src' / 'main.js'
+code = main.read_text()
+assert "  { kind: 'screen', screen: 'credits', label: 'Credits' }," in code
+code = code.replace("  { kind: 'screen', screen: 'credits', label: 'Credits' },", "  { kind: 'screen', screen: 'credits', label: 'Credits' },\n  { kind: 'exit', label: 'Exit' },", 1)
+assert "  { key: 'padsetup', label: 'Controller Setup', action: true }," in code
+code = code.replace("  { key: 'padsetup', label: 'Controller Setup', action: true },", "  { key: 'padsetup', label: 'Controller Setup', action: true },\n  { key: 'fullscreen', label: 'Fullscreen:', bool: true },", 1)
+assert "    if (item.kind === 'screen') {" in code
+code = code.replace("    if (item.kind === 'screen') {", "    if (item.kind === 'exit') {\n      window.close();\n      return;\n    }\n    if (item.kind === 'screen') {", 1)
+assert "      if (changed && row.key === 'vibration'" in code
+code = code.replace("      if (changed && row.key === 'vibration'", """      if (changed && row.key === 'fullscreen') {
+        if (o.fullscreen) document.documentElement.requestFullscreen().catch(() => { o.fullscreen = false; this.toast('Fullscreen unavailable'); });
+        else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      }
+      if (changed && row.key === 'vibration'""", 1)
+assert "      Object.assign(this.options, DEFAULT_OPTIONS);" in code
+code = code.replace("      Object.assign(this.options, DEFAULT_OPTIONS);", """      Object.assign(this.options, DEFAULT_OPTIONS);
+      this.options.fullscreen = false;
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});""", 1)
+assert "    this.options = { ...DEFAULT_OPTIONS, ...loadJSON('squarez.options', {}) };" in code
+code = code.replace("    this.options = { ...DEFAULT_OPTIONS, ...loadJSON('squarez.options', {}) };", """    this.options = { ...DEFAULT_OPTIONS, ...loadJSON('squarez.options', {}), fullscreen: false };
+    document.addEventListener('fullscreenchange', () => {
+      this.options.fullscreen = !!document.fullscreenElement;
+    });""", 1)
+main.write_text(code)
