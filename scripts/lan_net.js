@@ -16,7 +16,7 @@ export class Link {
   }
   async join(address) { await this.connect(address); }
   connect(address) {
-    if (!/^(?:\\d{1,3}\\.){3}\\d{1,3}$/.test(address)) return Promise.reject(new Error('Enter the host PC IPv4 address'));
+    if (!/^(?:\d{1,3}\.){3}\d{1,3}$/.test(address)) return Promise.reject(new Error('Enter the host PC IPv4 address'));
     return new Promise((resolve, reject) => {
       const ws = new WebSocket('ws://' + address + ':' + PORT);
       this.ws = ws;
