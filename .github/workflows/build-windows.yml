@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'windows/**'
+      - 'scripts/**'
       - '.github/workflows/build-windows.yml'
 jobs:
   windows:
