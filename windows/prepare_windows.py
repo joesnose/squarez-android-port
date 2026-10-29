@@ -65,3 +65,113 @@ code = code.replace("    this.options = { ...DEFAULT_OPTIONS, ...loadJSON('squar
       this.options.fullscreen = !!document.fullscreenElement;
     });""", 1)
 main.write_text(code)
+
+# Expose menu lengths so pointer hit testing follows upstream menu layout.
+main = dest / 'src' / 'main.js'
+code = main.read_text()
+marker = 'class App {'
+assert marker in code
+code = code.replace(marker, 'window.squarezMenuLayout = { menuCount: MENU_ITEMS.length, optionCount: OPTION_ROWS.length };\n' + marker, 1)
+main.write_text(code)
+
+index = dest / 'index.html'
+html = index.read_text()
+pointer_script = """
+<script>
+(() => {
+  const canvas = document.getElementById('screen');
+  const position = event => {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (event.clientX - rect.left) * canvas.width / rect.width,
+      y: (event.clientY - rect.top) * canvas.height / rect.height
+    };
+  };
+  const indexAt = (y, start, step, count) => {
+    const n = Math.round((y - start) / step);
+    return n >= 0 && n < count && Math.abs(y - (start + n * step)) <= step / 2 ? n : -1;
+  };
+  const input = action => ({
+    pressed: key => key === action,
+    nav: key => key === action
+  });
+  const select = (app, point, activate) => {
+    const layout = window.squarezMenuLayout;
+    if (!layout) return false;
+    if (app.screen === 'menu') {
+      if (app.timedMenu) {
+        const n = indexAt(point.y, 0x41 + app.menuIndex * 12, 10, 5);
+        if (n >= 0 && point.x >= 0x140) {
+          app.timedIndex = n;
+          if (activate) app.updateMenu(input('accept'));
+          return true;
+        }
+        return false;
+      }
+      const n = indexAt(point.y, 0x41, 12, layout.menuCount);
+      if (n >= 0 && point.x >= 0xc0) {
+        app.menuIndex = n;
+        if (activate) app.updateMenu(input('accept'));
+        return true;
+      }
+    }
+    if (app.screen === 'options') {
+      const n = indexAt(point.y, 0x1a, 15, layout.optionCount + 1);
+      if (n >= 0 && point.x >= 0x10) {
+        app.optionIndex = n;
+        if (activate) app.updateOptions(input(point.x > 0xc0 && n < layout.optionCount ? 'right' : 'accept'));
+        return true;
+      }
+    }
+    if (app.screen === 'multi') {
+      const rows = [0x24, 0x32, 0x48, 0x56];
+      const n = rows.findIndex(y => Math.abs(point.y - y) <= 7);
+      if (n >= 0 && point.x >= 0x10) {
+        app.multiRow = n;
+        if (activate) app.updateMulti(input(n < 2 ? 'right' : 'accept'));
+        return true;
+      }
+    }
+    if (app.screen === 'custom') {
+      const n = indexAt(point.y, 0x2c, 12, Math.min(17, app.customGames.length - app.customTop));
+      if (n >= 0 && point.x >= 0x10) {
+        app.customIndex = app.customTop + n;
+        if (activate) app.updateCustom(input('accept'));
+        return true;
+      }
+    }
+    if (app.screen === 'game' && app.game && app.game.paused) {
+      const n = indexAt(point.y, 0x28, 12, app.pauseItems().length);
+      if (n >= 0 && point.x >= 0x10) {
+        app.pauseIndex = n;
+        if (activate) app.updateGame(input('accept'));
+        return true;
+      }
+    }
+    return false;
+  };
+  canvas.addEventListener('mousemove', e => {
+    const app = window.squarez;
+    if (app && app.screen !== 'game') select(app, position(e), false);
+    canvas.style.cursor = app && ['menu', 'options', 'multi', 'custom'].includes(app.screen) ? 'pointer' : 'default';
+  });
+  canvas.addEventListener('click', e => {
+    const app = window.squarez;
+    if (!app || app.screen === 'loading') return;
+    if (select(app, position(e), true)) return;
+    if (app.screen === 'instructions') app.page = Math.min(4, app.page + 1);
+    else if (app.screen === 'highscores') app.updateHighscores(input('pageRight'));
+    else if (app.screen === 'credits') app.screen = 'menu';
+  });
+  canvas.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    const app = window.squarez;
+    if (!app) return;
+    if (app.screen === 'menu' && app.timedMenu) app.timedMenu = false;
+    else if (app.screen === 'options') app.updateOptions(input('back'));
+    else if (app.screen !== 'game' && app.screen !== 'menu') app.screen = 'menu';
+  });
+})();
+</script>
+"""
+index.write_text(html.replace('</body>', pointer_script + '</body>'))
