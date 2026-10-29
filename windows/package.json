@@ -25,7 +25,8 @@
       "target": [
         "portable"
       ],
-      "artifactName": "Squarez-Mouse-Windows-${version}.exe"
+      "artifactName": "Squarez-Mouse-Windows-${version}.exe",
+      "icon": "icon.ico"
     }
   }
 }
